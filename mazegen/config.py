@@ -1,20 +1,48 @@
+# mazegen/config.py
+from pydantic import BaseModel, Field, ValidationError
+
+class MazeSettings(BaseModel):
+    """Pydantic model that automatically validates our configuration data."""
+    # Enforce strict terminal limits: minimum 5x5 (for the 42 logo), maximum 100x100
+    width: int = Field(..., ge=10, le=100, description="Maze width between 10 and 100")
+    height: int = Field(..., ge=10, le=100, description="Maze height between 10 and 100")
+
+    entry: tuple[int, int]
+    exit: tuple[int, int]
+
+    # Provide safe defaults if the user forgets to include these in the text file!
+    output_file: str = Field(default="maze_output.txt")
+    perfect: bool = Field(default=True)
+    seed: int | None = Field(default=None)
+
 class MazeConfig:
-    """Parses and stores the maze configuration from a text file."""
+    """Parses the text file and passes the raw data to Pydantic for validation."""
 
     def __init__(self, filepath: str) -> None:
-        self.width: int = 0
-        self.height: int = 0
-        self.entry: tuple[int, int] = (0, 0)
-        self.exit: tuple[int, int] = (0, 0)
-        self.output_file: str = "maze.txt"
-        self.perfect: bool = True
-        self.seed: int | None = None
+        self.filepath = filepath
+        raw_data = self._read_file(filepath)
 
-        self._parse_file(filepath)
-        self._validate()
+        try:
+            # Pydantic takes the raw dictionary and automatically validates everything!
+            self.settings = MazeSettings(**raw_data)
+        except ValidationError as e:
+            # If Pydantic catches an error (e.g. WIDTH=900), it formats a beautiful error message
+            raise ValueError(f"Configuration Validation Failed in '{filepath}':\n{e}")
 
-    def _parse_file(self, filepath: str) -> None:
-        """Reads the config file and extracts KEY=VALUE pairs."""
+        self._logical_checks()
+
+        # Flatten the validated settings so generator.py doesn't have to change its syntax
+        self.width = self.settings.width
+        self.height = self.settings.height
+        self.entry = self.settings.entry
+        self.exit = self.settings.exit
+        self.output_file = self.settings.output_file
+        self.perfect = self.settings.perfect
+        self.seed = self.settings.seed
+
+    def _read_file(self, filepath: str) -> dict:
+        """Reads the KEY=VALUE text file and converts it into a Python dictionary."""
+        data = {}
         try:
             with open(filepath, 'r') as file:
                 for line in file:
@@ -25,43 +53,32 @@ class MazeConfig:
                     if '=' not in line:
                         raise ValueError(f"Invalid line format: {line}")
 
-                    # string.split(separator, maxsplit - how many splits to perform)
                     key, value = line.split('=', 1)
                     key = key.strip().upper()
                     value = value.strip()
 
-                    self._assign_value(key, value)
+                    # Pre-process coordinates from "0,0" to a tuple (0, 0)
+                    if key in ["ENTRY", "EXIT"]:
+                        coords = value.split(',')
+                        if len(coords) != 2:
+                            raise ValueError(f"{key} must have exactly two numbers (x,y)")
+                        data[key.lower()] = (int(coords[0]), int(coords[1]))
+                    else:
+                        data[key.lower()] = value
+            return data
+
         except FileNotFoundError:
-            raise FileNotFoundError(f"Configuration file '{filepath}' not found.")
+            raise FileNotFoundError(f"CRITICAL: Configuration file '{filepath}' is completely missing!")
 
-    def _assign_value(self, key: str, value: str) -> None:
-        """Assigns parsed string values to the correct typed attributes."""
-        if key == "WIDTH":
-            self.width = int(value)
-        elif key == "HEIGHT":
-            self.height = int(value)
-        elif key == "ENTRY":
-            coords: str = value.split(',')
-            self.entry = (int(coords[0]), int(coords[1]))
-        elif key == "EXIT":
-            coords: str = value.split(',')
-            self.exit = (int(coords[0]), int(coords[1]))
-        elif key == "OUTPUT_FILE":
-            self.output_file = value
-        elif key == "PERFECT":
-            self.perfect = value.lower() == "true"
-        elif key == "SEED":
-            self.seed = int(value)
-        else:
-            raise ValueError(f"Unknown configuration key: {key}")
+    def _logical_checks(self) -> None:
+        """Custom checks that Pydantic can't do natively (like comparing two fields)."""
+        if self.settings.entry == self.settings.exit:
+            raise ValueError("Entry and Exit coordinates cannot be the exact same spot.")
 
-    def _validate(self) -> None:
-        """Ensures the parsed data makes logical sense."""
-        if self.width < 5 or self.height < 5:
-            raise ValueError("Maze dimensions must be at least 5x5 to fit the '42' pattern.")
-        if self.entry == self.exit:
-            raise ValueError("Entry and Exit coordinates cannot be the same.")
-        if not (0 <= self.entry[0] < self.width and 0 <= self.entry[1] < self.height):
-            raise ValueError("Entry coordinates are out of bounds.")
-        if not (0 <= self.exit[0] < self.width and 0 <= self.exit[1] < self.height):
-            raise ValueError("Exit coordinates are out of bounds.")
+        ex, ey = self.settings.entry
+        if not (0 <= ex < self.settings.width and 0 <= ey < self.settings.height):
+            raise ValueError(f"Entry {self.settings.entry} is outside the maze bounds.")
+
+        xx, xy = self.settings.exit
+        if not (0 <= xx < self.settings.width and 0 <= xy < self.settings.height):
+            raise ValueError(f"Exit {self.settings.exit} is outside the maze bounds.")

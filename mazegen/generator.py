@@ -1,6 +1,7 @@
 import os
 import sys
 import random
+import time
 from .cell import Cell
 from .config import MazeConfig
 from . import colors
@@ -67,7 +68,9 @@ class MazeGenerator:
             self.grid[ty][tx].walls = 15
 
 
-    def dfs_generate(self) -> None:
+    # Maze Generation Algorithms --------------------------
+    # Depth First Search (DFS)
+    def dfs_generate(self, animate: bool = False, delay: float = 0.02) -> None:
         """DFS maze generation from a valid random point"""
         # Picking a random starting coordinate
         start_x = random.randint(0, self.config.width - 1)
@@ -79,13 +82,22 @@ class MazeGenerator:
             start_y = random.randint(0, self.config.height - 1)
 
         # Carve the maze
-        self._make_maze_dfs(start_x, start_y)
+        self._make_maze_dfs(start_x, start_y, animate, delay)
+
+        # Make the maze imperfect if PERFECT=False
+        if not self.config.perfect:
+            self._create_imperfect_loops()
 
 
-    def _make_maze_dfs(self, x: int, y: int) -> None:
+    def _make_maze_dfs(self, x: int, y: int, animate: bool, delay: float) -> None:
         """Recursive DFS algorithm to carve paths"""
         # Mark current cell as visited to skip it
         self.grid[y][x].visited = True
+
+        # Animation ----------------------------
+        if animate:
+            self.render_terminal()
+            time.sleep(delay)
 
         # Define 4 moves:
         #   x_change, y_change, wall_break_to_leave, wall_break_to_enter
@@ -113,7 +125,7 @@ class MazeGenerator:
                     self.grid[y][x].remove_wall(dir_out)
                     self.grid[ty][tx].remove_wall(dir_in)
                     # Recursively jump into new cell to carve on
-                    self._make_maze_dfs(tx, ty)
+                    self._make_maze_dfs(tx, ty, animate, delay)
 
 
     def get_maze_hex_string(self) -> str:
@@ -127,6 +139,133 @@ class MazeGenerator:
             output += "\n"
         return output
 
+
+    # Prim's Algorithm
+    def prims_generate(self, animate: bool = False, delay: float = 0.02) -> None:
+        """Randomized Prim's maze generation algorithm"""
+        # Pick random entry point out of 42 block, but within bounds
+        start_x: int = random.randint(0, self.config.width - 1)
+        start_y: int = random.randint(0, self.config.height - 1)
+        while self.grid[start_y][start_x].is_42:
+            start_x: int = random.randint(0, self.config.width - 1)
+            start_y: int = random.randint(0, self.config.height - 1)
+
+        # Marking the entry as a visited cell
+        self.grid[start_y][start_x].visited = True
+
+        # A list for tracking cells at the edge of the growing maze
+        frontier: list[tuple[int, int]] = []
+
+        # Adds neighbors to the frontier
+        def add_frontier(x: int, y: int) -> None:
+            for dx, dy in [(0, -1), (1, 0), (0, 1), (-1, 0)]:
+                tx, ty = x + dx, y + dy
+                if 0 <= tx < self.config.width and 0 <= ty < self.config.height:
+                    if not self.grid[ty][tx].visited and (tx, ty) not in frontier:
+                        frontier.append((tx, ty))
+        add_frontier(start_x, start_y)
+
+        # Grow the maze till boarders are reached
+        while frontier:
+            # Pick a random cell from the edge of maze
+            idx: int = random.randint(0, len(frontier) - 1)
+            tx, ty = frontier.pop(idx)
+
+            self.grid[ty][tx].visited = True
+
+            # Find all neighbors of the cell that are part of the maze
+            in_maze_neighbors = []
+            options: list[tuple[int, int, int, int]] = [
+                (0, -1, Cell.NORTH, Cell.SOUTH),
+                (1, 0, Cell.EAST, Cell.WEST),
+                (0, 1, Cell.SOUTH, Cell.NORTH),
+                (-1, 0, Cell.WEST, Cell.EAST)
+            ]
+
+            for dx, dy, dir_out, dir_in in options:
+                nx, ny = tx + dx, ty + dy
+                if 0 <= nx < self.config.width and 0 <= ny <self.config.height:
+                    # Avoid 42 block
+                    if self.grid[ny][nx].visited and not self.grid[ny][nx].is_42:
+                        in_maze_neighbors.append((nx, ny, dir_out, dir_in))
+
+            # Connect target cell to one random adjacent maze cell
+            if in_maze_neighbors:
+                nx, ny, dir_out, dir_in = random.choice(in_maze_neighbors)
+                self.grid[ty][tx].remove_wall(dir_out)
+                self.grid[ny][nx].remove_wall(dir_in)
+
+                # Animation hook
+                if animate:
+                    self.render_terminal()
+                    time.sleep(delay)
+
+            # Add target's unvisited neighbors to the frontier
+            add_frontier(tx, ty)
+
+        # Break the generated perfect maze if PERFECT=False
+        if not self.config.perfect:
+            self._create_imperfect_loops()
+
+
+    # Function that creates Imperfect mazes when PERFECT=False
+    # out of Perfectly created mazes
+
+    def _create_imperfect_loops(self) -> None:
+        """Makes imperfect 'Braid Mazes' with looped dead-ends."""
+        # Converts into an imperfect 'Braid Maze' by
+        # turning dead ends into round loops.
+        for y in range(self.config.height):
+            for x in range(self.config.width):
+                cell = self.grid[y][x]
+
+                # Never touch the 42 block!
+                if cell.is_42:
+                    continue
+
+                # Count how many walls are currently closed on this cell
+                closed_walls = sum([
+                    cell.has_wall(Cell.NORTH),
+                    cell.has_wall(Cell.EAST),
+                    cell.has_wall(Cell.SOUTH),
+                    cell.has_wall(Cell.WEST)
+                ])
+
+                # If it has exactly 3 closed walls, it is a Dead End!
+                if closed_walls == 3:
+
+                    # Have a 50% chance to open this dead end
+                    # to create a loop
+                    if random.random() < 0.50:
+
+                        # Find all CLOSED walls that don't lead out
+                        # of bounds
+                        options = []
+                        if y > 0 and cell.has_wall(Cell.NORTH):
+                            options.append((0, -1, Cell.NORTH, Cell.SOUTH))
+                        if x < self.config.width - 1 and cell.has_wall(Cell.EAST):
+                            options.append((1, 0, Cell.EAST, Cell.WEST))
+                        if y < self.config.height - 1 and cell.has_wall(Cell.SOUTH):
+                            options.append((0, 1, Cell.SOUTH, Cell.NORTH))
+                        if x > 0 and cell.has_wall(Cell.WEST):
+                            options.append((-1, 0, Cell.WEST, Cell.EAST))
+
+                        # Shuffle the valid walls
+                        random.shuffle(options)
+
+                        for dx, dy, dir_out, dir_in in options:
+                            tx, ty = x + dx, y + dy
+
+                            # If the neighbor is safe,
+                            # break the wall and STOP
+                            if not self.grid[ty][tx].is_42:
+                                cell.remove_wall(dir_out)
+                                self.grid[ty][tx].remove_wall(dir_in)
+                                break
+                                # We only break ONE wall per dead end!
+
+
+    # Preliminary Grid Generation Algorithm
     # Plot the dotted test grid
     # def debug_print_grid(self) -> None:
     #     """A temporary visualizer to test Stage 1."""
@@ -145,6 +284,7 @@ class MazeGenerator:
     #         print(row_str)
     #     print("------------------------\n")
 
+    # Solution Finding Algorithms -----------------------
     # Breadth-first search (BFS) - shortest path
     def solve_shortest_path_bfs(self, start_x: int, start_y: int,
         end_x: int, end_y: int) -> str:
@@ -188,6 +328,44 @@ class MazeGenerator:
         # Returns empty str if not path possible
         return ""
 
+
+    def solve_path_dfs(self,
+                       start_x: int, start_y: int, end_x: int, end_y: int) -> str:
+        """Finds a valid path by Depth-First Search (DFS)"""
+        visited = set()
+        visited.add((start_x, start_y))
+
+        stack: list[tuple[int, int, str]] = [(start_x, start_y, "")]
+
+        while stack:
+            # pop(-1) takes cell from the back of the line
+            # this causes the algorithm to dive deep instead of
+            # spreadig wide like with BFS
+            x, y, current_path = stack.pop(-1)
+
+            if x == end_x and y == end_y:
+                return current_path
+
+            moves = [
+                (0, -1, Cell.NORTH, "N"),
+                (1, 0, Cell.EAST, "E"),
+                (0, 1, Cell.SOUTH, "S"),
+                (-1, 0, Cell.WEST, "W")
+            ]
+
+            # RAndomize the moves for chaotic, winding paths
+            random.shuffle(moves)
+
+            for dx, dy, wall_mask, dir_str in moves:
+                if not self.grid[y][x].has_wall(wall_mask):
+                    tx, ty = x + dx, y + dy
+                    if (tx, ty) not in visited:
+                        visited.add((tx, ty))
+                        stack.append((tx, ty, current_path + dir_str))
+        return ""
+
+
+    # Saving the maze to the external file -----------------------
     def save_maze_to_file(self) -> None:
         """Saves maze to output file as required"""
         try:
@@ -229,9 +407,8 @@ class MazeGenerator:
 
 
     def render_terminal(self, player_pos: tuple[int, int] | None = None,
-                        show_solution: bool = False,
-                        wall_color: str = colors.WHITE) -> None:
-        """Renders the maze as ASCII blocks with ANSI colors"""
+                        solution_mode: int = 0, wall_color: str = colors.WHITE) -> None:
+        """Renders the maze. solution_mode: 0=Off, 1=BFS Shortest, 2=DFS Winding"""
         # Clear screen
         os.system('clear' if os.name == 'posix' else 'cls')
 
@@ -239,11 +416,15 @@ class MazeGenerator:
         px, py = player_pos if player_pos else self.config.entry
 
         # Calculate the solution coordinates
+        # Calculate dynamic solution coords based on CURRENT player position!
         solution_coords: set[tuple[int, int]] = set()
-        if show_solution:
-            # exit_x and exit_y
-            ex, ey = self.config.exit
-            path_str: str = self.solve_shortest_path_bfs(px, py, ex, ey)
+        ex, ey = self.config.exit
+
+        if solution_mode == 1:
+            path_str = self.solve_shortest_path_bfs(px, py, ex, ey)
+            solution_coords = self._get_path_coords(px, py, path_str)
+        elif solution_mode == 2:
+            path_str = self.solve_path_dfs(px, py, ex, ey)
             solution_coords = self._get_path_coords(px, py, path_str)
 
         # Draw maze row-by-row
@@ -258,13 +439,13 @@ class MazeGenerator:
                 # Determine insides the cell
                 center: str = "   "
                 if (x, y) == (px, py):
-                    center = f"{colors.GREEN} @ {wall_color}"  # Player
+                    center = f"{colors.GREEN}🚗 {wall_color}"  # Player
                 elif (x, y) == self.config.exit:
                     center = f"{colors.RED} E {wall_color}"    # Exit
                 elif (x, y) == self.config.entry:
                     center = f"{colors.BLUE} S {wall_color}"    # Start
                 elif (x, y) in solution_coords:
-                    center = f"{colors.YELLOW} . {wall_color}"  # Solution
+                    center = f"{colors.YELLOW} ● {wall_color}"  # Solution
                 elif cell.is_42:
                     center = f"{colors.MAGENTA}███{wall_color}" # 42!
 
