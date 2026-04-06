@@ -1,11 +1,10 @@
 # a_maze_ing.py
 import sys
-import os
 import tty
 import termios
-
 from mazegen.generator import MazeGenerator
 from mazegen import colors
+
 
 def getch() -> str:
     """Captures a single keypress from the terminal (Unix only)."""
@@ -18,6 +17,7 @@ def getch() -> str:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
 
+
 def play_mode(maze: MazeGenerator, wall_color: str) -> None:
     """Interactive loop allowing the user to navigate the maze."""
     px, py = maze.config.entry
@@ -25,9 +25,14 @@ def play_mode(maze: MazeGenerator, wall_color: str) -> None:
     hint_mode = 0
 
     while True:
-        maze.render_terminal(player_pos=(px, py), solution_mode=hint_mode, wall_color=wall_color)
+        maze.render_terminal(
+            player_pos=(px, py),
+            solution_mode=hint_mode,
+            wall_color=wall_color
+        )
         print(f"\n{colors.YELLOW}=== PLAY MODE ==={colors.RESET}")
-        print("Use W, A, S, D to move. Press 'H' to toggle Hint. Press 'Q' to quit.")
+        print("Use W, A, S, D to move. Press 'H' to toggle Hint. "
+              "Press 'Q' to quit.")
 
         if (px, py) == (ex, ey):
             print(f"\n{colors.GREEN}🎉 YOU ESCAPED THE MAZE! 🎉{colors.RESET}")
@@ -35,19 +40,21 @@ def play_mode(maze: MazeGenerator, wall_color: str) -> None:
             return
 
         move = getch().lower()
+        current_cell = maze.grid[py][px]
 
         if move == 'q':
             return
         elif move == 'h':
             hint_mode = 1 if hint_mode == 0 else 0
-        elif move == 'w' and not maze.grid[py][px].has_wall(maze.grid[py][px].NORTH):
+        elif move == 'w' and not current_cell.has_wall(current_cell.NORTH):
             py -= 1
-        elif move == 's' and not maze.grid[py][px].has_wall(maze.grid[py][px].SOUTH):
+        elif move == 's' and not current_cell.has_wall(current_cell.SOUTH):
             py += 1
-        elif move == 'a' and not maze.grid[py][px].has_wall(maze.grid[py][px].WEST):
+        elif move == 'a' and not current_cell.has_wall(current_cell.WEST):
             px -= 1
-        elif move == 'd' and not maze.grid[py][px].has_wall(maze.grid[py][px].EAST):
+        elif move == 'd' and not current_cell.has_wall(current_cell.EAST):
             px += 1
+
 
 def main() -> None:
     """Main program"""
@@ -68,19 +75,29 @@ def main() -> None:
         solution_mode = 0
         animate_gen = False
         is_perfect = maze.config.perfect
-
-        # Track whether the user just saved the file
         just_saved = False
 
         while True:
-            current_color = colors.COLOR_PALETTE[color_idx % len(colors.COLOR_PALETTE)]
-            maze.render_terminal(solution_mode=solution_mode, wall_color=current_color)
+            palette = colors.COLOR_PALETTE
+            current_color = palette[color_idx % len(palette)]
+            maze.render_terminal(
+                solution_mode=solution_mode,
+                wall_color=current_color
+            )
 
-            anim_str = f"{colors.GREEN}ON{colors.RESET}" if animate_gen else f"{colors.RED}OFF{colors.RESET}"
-            perf_str = f"{colors.GREEN}PERFECT (Single Path){colors.RESET}" if is_perfect else f"{colors.YELLOW}IMPERFECT (Loops/Braid){colors.RESET}"
+            if animate_gen:
+                anim_str = f"{colors.GREEN}ON{colors.RESET}"
+            else:
+                anim_str = f"{colors.RED}OFF{colors.RESET}"
+
+            if is_perfect:
+                perf_str = f"{colors.GREEN}PERFECT (Single Path){colors.RESET}"
+            else:
+                perf_str = f"{colors.YELLOW}IMPERFECT (Braid){colors.RESET}"
 
             # Create the dynamic save tag
-            save_str = f" {colors.GREEN}[Saved!]{colors.RESET}" if just_saved else ""
+            save_str = f" {colors.GREEN}[Saved!]{colors.RESET}" \
+                if just_saved else ""
 
             print(f"\n{colors.WHITE}=== A-Maze-Ing Menu ==={colors.RESET}")
             print(" 1. Regenerate Maze (DFS - Winding Paths)")
@@ -91,13 +108,12 @@ def main() -> None:
             print(" 6. Change Wall Color")
             print(f" 7. Toggle Generation Animation [Current: {anim_str}]")
             print(f" 8. Toggle Perfect Maze         [Current: {perf_str}]")
-            print(f" 9. {colors.GREEN}Play Mode (Find the exit!){colors.RESET}")
+            print(f" 9. {colors.GREEN}Play Mode (Find exit!){colors.RESET}")
             print(f"10. Save Maze to File          {save_str}")
             print("11. Quit")
 
             choice = input("Choice (1-11): ").strip()
 
-            # If they pick anything other than 10, clear the "Saved!" tag
             if choice != '10':
                 just_saved = False
 
@@ -127,7 +143,7 @@ def main() -> None:
                 play_mode(maze, current_color)
             elif choice == '10':
                 maze.save_maze_to_file()
-                just_saved = True  # Trigger the tag for the next render
+                just_saved = True
             elif choice == '11':
                 print("[+] Goodbye!")
                 break
@@ -138,6 +154,7 @@ def main() -> None:
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

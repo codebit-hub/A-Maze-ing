@@ -1,37 +1,61 @@
 # Variables
-PYTHON = python3
-MAIN = a_maze_ing.py
-CONFIG = config.txt
+VENV = venv
+PYTHON = $(VENV)/bin/python
+PIP = $(VENV)/bin/pip
+MYPY = $(VENV)/bin/mypy
+FLAKE8 = $(VENV)/bin/flake8
+PYTEST = $(VENV)/bin/pytest
+STAMP = $(VENV)/.installed
 
-.PHONY: install run debug clean lint lint-strict build
+all: install
 
-install:
-	# Upgrades pip and
-	# installs the local mazegen package
-	# along with build tools
-	$(PYTHON) -m pip install --upgrade pip build wheel flake8 mypy
-	$(PYTHON) -m pip install -e .
+$(VENV)/bin/activate:
+	python3 -m venv $(VENV)
 
-run:
-	$(PYTHON) $(MAIN) $(CONFIG)
+$(STAMP): $(VENV)/bin/activate setup.py
+	$(PIP) install --upgrade pip build wheel pydantic flake8 \
+	mypy pytest types-setuptools
+	$(PIP) install -e .
+	touch $(STAMP)
 
-debug:
-	$(PYTHON) -m pdb $(MAIN) $(CONFIG)
+install: $(STAMP)
+
+run: install
+	$(PYTHON) a_maze_ing.py config.txt
+
+build: install
+	$(PYTHON) -m build --sdist --wheel --outdir .
+	@echo "\n[+] Package built! Files are in the root directory."
+
+debug: install
+	$(PYTHON) -m pdb a_maze_ing.py config.txt
+
+lint: install
+	$(FLAKE8) . --exclude $(VENV),build,dist,.pytest_cache
+	$(MYPY) . --exclude $(VENV) \
+	--explicit-package-bases \
+	--warn-return-any \
+	--warn-unused-ignores \
+	--ignore-missing-imports \
+	--disallow-untyped-defs \
+	--check-untyped-defs
+
+lint-strict: install
+	$(FLAKE8) . --exclude $(VENV),build,dist,.pytest_cache
+	$(MYPY) . --exclude $(VENV) --explicit-package-bases --strict
+
+test: install
+	PYTHONPATH=. $(PYTEST) tests/
 
 clean:
-	# Removes python cache files and build artifacts
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -type d -name ".mypy_cache" -exec rm -rf {} +
-	rm -rf build/ dist/ mazegen.egg-info/
+	rm -rf __pycache__ mazegen/__pycache__ tests/__pycache__
+	rm -rf *.egg-info build dist .mypy_cache .pytest_cache
+	rm -f maze_output.txt
+	rm -f mazegen-*.whl mazegen-*.tar.gz
 
-lint:
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+fclean: clean
+	rm -rf $(VENV)
 
-lint-strict:
-	flake8 .
-	mypy . --strict
+re: fclean all
 
-build: clean
-	# Builds the .whl and .tar.gz files required by the subject
-	$(PYTHON) -m build
+.PHONY: all install run build debug lint lint-strict test clean fclean re

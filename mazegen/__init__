@@ -1,0 +1,38 @@
+"""
+A-Maze-Ing: Maze Generation Module
+==================================
+This module provides a robust, reusable maze generator utilizing DFS and Prim's algorithms.
+
+How to Instantiate and Use:
+---------------------------
+from mazegen.generator import MazeGenerator
+
+# 1. Instantiate the generator with a config file
+maze = MazeGenerator("config.txt")
+
+# 2. Generate the maze using an algorithm
+maze.dfs_generate()
+
+# 3. Access a solution path
+ex, ey = maze.config.entry
+xx, xy = maze.config.exit
+path = maze.solve_shortest_path_bfs(ex, ey, xx, xy)
+print(f"Solution: {path}")
+
+Passing Custom Parameters:
+--------------------------
+Parameters are passed via the configuration text file.
+Example config.txt:
+WIDTH=20
+HEIGHT=15
+ENTRY=0,0
+EXIT=19,14
+PERFECT=True
+SEED=42
+
+Accessing the Generated Structure:
+----------------------------------
+The generated maze is stored in `maze.grid`, which is a 2D list of `Cell` objects.
+You can access a specific cell at (x, y) via `maze.grid[y][x]`.
+Use `maze.get_maze_hex_string()` to retrieve the raw hexadecimal representation.
+"""

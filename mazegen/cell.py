@@ -2,10 +2,10 @@ class Cell:
     """Represents a single square in the maze."""
 
     # Class constants represent walls instead of bitmasks
-    NORTH: int = 1  # 0001
-    EAST: int  = 2  # 0010
-    SOUTH: int = 4  # 0100
-    WEST: int  = 8  # 1000
+    NORTH: int = 1   # 0001
+    EAST: int = 2    # 0010
+    SOUTH: int = 4   # 0100
+    WEST: int = 8    # 1000
 
     def __init__(self, x: int, y: int) -> None:
         """Initializes a cell at given coordinates with all walls closed."""

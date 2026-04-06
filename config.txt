@@ -1,7 +1,10 @@
 # Default Maze Configuration
-WIDTH=10
-HEIGHT=10
+# Half-screen limit: 17,12
+# Full-screen limit: 35,12
+WIDTH=17
+HEIGHT=12
 ENTRY=0,0
-EXIT=9,9
+EXIT=16,11
 OUTPUT_FILE=maze_output.txt
-PERFECT=False
+PERFECT=True
+SEED=42
