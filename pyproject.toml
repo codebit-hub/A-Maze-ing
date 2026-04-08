@@ -14,3 +14,10 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.0.0"
 ]
+
+[project.scripts]
+a_maze_ing = "a_maze_ing:main"
+
+[tool.setuptools]
+packages = ["mazegen"]
+py-modules = ["a_maze_ing"]

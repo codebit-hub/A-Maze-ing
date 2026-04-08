@@ -85,7 +85,7 @@ Artificial Intelligence (LLMs) was utilized strictly as a pair-programming and d
 
 ### Running from Source
 **To run the interactive program from the source code:**
-Ensure you have `make` installed. The Makefile will automatically handle the creation of the Python virtual environment and the installation of all dependencies.
+The Makefile will automatically handle the creation of the Python virtual environment and the installation of all dependencies.
 
 1. Clone the repository and navigate into the folder.
 2. Run `make run` to instantly build the environment, install the package, and launch the interactive menu.
@@ -103,13 +103,14 @@ The project includes a `Makefile` to automate all tasks within an isolated virtu
 * `make fclean`: Executes `clean` and completely deletes the virtual environment (`venv/`).
 * `make re`: Executes `fclean` followed by `all` to rebuild the environment from scratch.
 
-## Using the `mazegen` Package in Your Projects
-The maze generation logic has been fully decoupled from the command line interface (CLI) and packaged as a standalone, pip-installable module.
 
-If you are an evaluator or a user wanting to test the `.whl` package from scratch, follow these exact steps:
+## Using the Built Package (`.whl` or `.tar.gz`)
+Running `make build` will generate standard Python distribution files (`mazegen-1.0.0-py3-none-any.whl` and a `.tar.gz` source archive) in the root directory.
+
+If you are a user wanting to test the installation of this package from scratch, follow these exact steps:
 
 ### Step 1: Setup a Fresh Workspace
-Create an empty folder, set up a Python virtual environment, and activate it:
+Create an empty folder anywhere on your computer, set up a Python virtual environment, and activate it:
 ```bash
 mkdir test_maze_pkg
 cd test_maze_pkg
@@ -123,23 +124,43 @@ Copy the `mazegen-1.0.0-py3-none-any.whl` file from the main repository into thi
 pip install mazegen-1.0.0-py3-none-any.whl
 ```
 
-### Step 3: Create the Configuration File
-The `MazeGenerator` uses `pydantic` to strictly enforce configuration parameters. Create a file named `config.txt` in your folder:
+### Step 3: Create a Configuration File
+The `MazeGenerator` uses strict validation. Create a valid file named `config.txt` in your folder:
 ```bash
 touch config.txt
 ```
-Open `config.txt` and paste the following parameters (ensure there are no spaces around the comma in the coordinates):
+Open `config.txt` and paste the following parameters:
 ```text
-WIDTH=15
-HEIGHT=15
+WIDTH=20
+HEIGHT=10
 ENTRY=0,0
-EXIT=14,14
+EXIT=19,9
 PERFECT=True
 SEED=42
 ```
 
-### Step 4: Create Your Python Script
-Create a Python file to instantiate the generator, access the raw data structure, and solve the maze:
+### Step 4: Test the Interactive CLI
+To absolutely guarantee that the package is correctly installed, you can perform three quick checks right from your terminal.
+
+Make sure your virtual environment (e.g., `venv_test`) is activated before running these!
+
+#### 1. The `pip show` Test
+This asks Python's package manager to look up your specific package and print out its metadata.
+```bash
+pip show mazegen
+```
+**Expected Output:** A block of text confirming the `Name: mazegen`, `Version: 1.0.0`, and the `Author` names set in `pyproject.toml`.
+
+#### 2. The CLI Command Test
+This proves that `[project.scripts]` entry point successfully linked your script to your system's PATH. Create a quick `config.txt` (if you haven't already in this test folder) and run:
+```bash
+a_maze_ing config.txt
+```
+**Expected Output:** The program's custom terminal menu should instantly pop up!
+
+
+### Step 5: Test the Reusable Python API
+To prove the core logic is fully decoupled and reusable for future projects, create a Python file to access the raw data structure programmatically:
 ```bash
 touch main.py
 ```
@@ -155,7 +176,10 @@ maze.dfs_generate()
 
 # 3. Access the generated structure
 # The grid is a 2D list of `Cell` objects accessible via maze.grid[y][x].
-# Let's check the walls of the Entrance cell (0, 0):
+# Let's check the walls of the Entrance cell (0, 0).
+# 1 (North) + 8 (West) = 9
+# N,W,S walls = 1 + 8 + 4 = 13;
+# N,W,E walls = 1 + 8 + 2 = 11:
 entrance_cell = maze.grid[0][0]
 print(f"Entrance Cell raw wall integer: {entrance_cell.walls}")
 
@@ -167,8 +191,7 @@ shortest_path = maze.solve_shortest_path_bfs(ex, ey, xx, xy)
 print(f"To solve the maze, follow this path: {shortest_path}")
 ```
 
-### Step 5: Execute!
-Run your script:
+Run your script to see the raw output:
 ```bash
 python3 main.py
 ```

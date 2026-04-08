@@ -1,7 +1,8 @@
 """
 A-Maze-Ing: Maze Generation Module
 ==================================
-This module provides a robust, reusable maze generator utilizing DFS and Prim's algorithms.
+This module provides a robust, reusable maze generator utilizing DFS and
+Prim's algorithms.
 
 How to Instantiate and Use:
 ---------------------------
@@ -32,7 +33,9 @@ SEED=42
 
 Accessing the Generated Structure:
 ----------------------------------
-The generated maze is stored in `maze.grid`, which is a 2D list of `Cell` objects.
+The generated maze is stored in `maze.grid`, which is a 2D list of
+`Cell` objects.
 You can access a specific cell at (x, y) via `maze.grid[y][x]`.
-Use `maze.get_maze_hex_string()` to retrieve the raw hexadecimal representation.
+Use `maze.get_maze_hex_string()` to retrieve the raw hexadecimal
+representation.
 """

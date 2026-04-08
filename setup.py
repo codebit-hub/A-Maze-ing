@@ -6,6 +6,7 @@ setup(
     description="A 42 project: Terminal-based maze generator and solver",
     author="dporhomo, amanukho",
     packages=find_packages(include=['mazegen', 'mazegen.*']),
+    py_modules=["a_maze_ing"],
     install_requires=[
         "pydantic>=2.0.0"
     ],
