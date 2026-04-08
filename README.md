@@ -1,5 +1,16 @@
 *This project has been created as part of the 42 curriculum by dporhomo, amanukho.*
 
+<div align="center">
+
+![42 Grade](https://img.shields.io/badge/42_Grade-125%25-brightgreen?style=flat-square&logo=42&logoColor=white)
+![Completion Date](https://img.shields.io/badge/Completed-Apr_8,_2026-success?style=flat-square)
+![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-Strict-e92063?style=flat-square&logo=pydantic&logoColor=white)
+![Pytest](https://img.shields.io/badge/Testing-Pytest-yellow?style=flat-square&logo=pytest&logoColor=white)
+![Linting](https://img.shields.io/badge/Linting-Flake8_%7C_Mypy-blueviolet?style=flat-square)
+
+</div>
+
 ## Description
 A highly robust, terminal-based Maze Generator and Solver operating entirely through a Command Line Interface (CLI). This project generates complex mazes, embeds a mandatory "42" structure in the center, and outputs the results in a strict hexadecimal format. It features multiple generation algorithms, dynamic visual terminal animations, and a fully interactive "Play Mode."
 
