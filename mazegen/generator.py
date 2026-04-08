@@ -337,7 +337,6 @@ class MazeGenerator:
             line1 = ""
             line2 = ""
             for x in range(self.config.width):
-                # FIXED MYPY BUG: Grid returns Cell objects, not tuples
                 cell: Cell = self.grid[y][x]
 
                 center: str = "   "

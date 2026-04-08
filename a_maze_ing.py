@@ -8,23 +8,40 @@ from mazegen import colors
 
 def getch() -> str:
     """Captures a single keypress from the terminal (Unix only)."""
+    # Defines fd for stdin
     fd = sys.stdin.fileno()
+    # tcgetattr accesses [iflag, oflag, cflag, lflag, ispeed, ospeed, cc]
+    # attributes of the terminal. It is snapshot of normal tty behaviour
     old_settings = termios.tcgetattr(fd)
+
     try:
+        # Set tty to 'raw' mode:
+        # -symbol receieved without waiting for pressed Enter
+        # -symbols are not printed to screen - no echo, just processing
         tty.setraw(sys.stdin.fileno())
+
+        # Read just 1 char from stdin
         ch = sys.stdin.read(1)
+
     finally:
+        # tcsadrain - changes attributes after transmitting all queued output.
+        # at the end sets tty to normal old behaviour
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
 
 
 def play_mode(maze: MazeGenerator, wall_color: str) -> None:
     """Interactive loop allowing the user to navigate the maze."""
+    # Classic game loop
+    # Get entry and exit points from config
     px, py = maze.config.entry
     ex, ey = maze.config.exit
+    # Solution path is hidden by default (0-off, 1-BFS)
     hint_mode = 0
 
     while True:
+        # Render current config
+        # Clears the screen and redraws the maze with config data
         maze.render_terminal(
             player_pos=(px, py),
             solution_mode=hint_mode,
@@ -34,11 +51,13 @@ def play_mode(maze: MazeGenerator, wall_color: str) -> None:
         print("Use W, A, S, D to move. Press 'H' to toggle Hint. "
               "Press 'Q' to quit.")
 
+        # Win condition check
         if (px, py) == (ex, ey):
             print(f"\n{colors.GREEN}🎉 YOU ESCAPED THE MAZE! 🎉{colors.RESET}")
             input("Press Enter to return to the menu...")
             return
 
+        # Wait for input and convert it into lower-case in case capslock was on
         move = getch().lower()
         current_cell = maze.grid[py][px]
 

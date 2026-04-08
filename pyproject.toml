@@ -7,7 +7,10 @@ name = "mazegen"
 version = "1.0.0"
 description = "A 42 curriculum maze generator package."
 authors = [
-    { name = "dtporhomo" },
-    { name = "team_mate2" }
+    { name = "dporhomo" },
+    { name = "amanukho" }
 ]
 requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0.0"
+]
