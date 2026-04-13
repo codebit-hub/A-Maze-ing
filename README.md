@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![42 Grade](https://img.shields.io/badge/42_Grade-125%25-brightgreen?style=flat-square&logo=42&logoColor=white)
+![42 Grade](https://img.shields.io/badge/42_Grade-125%25/100%25-brightgreen?style=flat-square&logo=42&logoColor=white)
 ![Completion Date](https://img.shields.io/badge/Completed-Apr_8,_2026-success?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-Strict-e92063?style=flat-square&logo=pydantic&logoColor=white)
