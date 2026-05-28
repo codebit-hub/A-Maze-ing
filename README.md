@@ -29,6 +29,9 @@ The primary objective of this project is to explore and implement fundamental da
 * **Display Options & Play Mode:** Interactive terminal rendering allows users to navigate the maze manually using `W, A, S, D` controls. Includes a real-time hint system that actively recalculates the solution path from the user's current coordinates to the exit on every step.
 * **Braid Mazes:** Generates "Imperfect" mazes containing loops and disconnected walls to eliminate dead ends.
 
+### Demonstration
+https://github.com/user-attachments/assets/ee267d66-dbc4-42c6-835d-64e39123cdf3
+
 ---
 
 ## Technical Choices & Algorithms
@@ -206,5 +209,4 @@ Run your script to see the raw output:
 ```bash
 python3 main.py
 ```
-
 ---
